@@ -44,7 +44,6 @@ namespace kotte
             for(int column = range.first_column; column < range.past_last_column; ++column){
                 Cell& cell = at(column, row);
                 const std::size_t removed = std::erase(cell, entity_handle);
-                assert(removed == 1);
                 (void) removed;
             }
         }

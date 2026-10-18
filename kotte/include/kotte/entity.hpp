@@ -1,6 +1,7 @@
 #pragma once
 
 #include "kotte/entity_handle.hpp"
+#include "../player_health.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -27,6 +28,7 @@ namespace kotte
         float fuse_remaining = 0.0f;
         std::uint8_t blast_range = 0;
         bool detonation_requested = false;
+        bool is_available = false; // ASSIGNMENT EXTENSION NO. 6 !!!
     };
 
     struct Entity final {
@@ -34,5 +36,7 @@ namespace kotte
         Vector2 world_position{};
         CardinalDirection movement_heading = CardinalDirection::right;
         std::optional<BombState> bomb_state;
+        //std::optional<PlayerHealth> player_health; // ASSIGNMENT REQUIRED FEATURES NO. 1
     };
+
 }

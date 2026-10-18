@@ -114,11 +114,13 @@ namespace kotte
         [[nodiscard]] static bool is_solid(EntityKind kind) noexcept;
         [[nodiscard]] static Vector2 cardinal_vector(CardinalDirection direction) noexcept;
         [[nodiscard]] CardinalDirection different_enemy_direction(CardinalDirection current_direction);
-        [[nodiscard]] bool owner_has_active_bomb(EntityHandle owner) const noexcept;
+        //[[nodiscard]] bool owner_has_active_bomb(EntityHandle owner) const noexcept; -> previous/original code
+        [[nodiscard]] bool check_if_have_available_bomb(EntityHandle owner) const noexcept; // ASSIGNMENT EXTENSION NO. 6 !!!
         [[nodiscard]] static Vector2 tile_centre(Vector2 world_position) noexcept;
         [[nodiscard]] static Vector2 tile_centre(int column, int row) noexcept;
         [[nodiscard]] static Color entity_color(EntityKind kind) noexcept;
         [[nodiscard]] static float entity_roundness(EntityKind kind) noexcept;
+        static constexpr int player_max_bombs_ = 5; // ASSIGNMENT EXTENSION NO. 6 !!!
         static constexpr int tile_size_ = 40;
         static constexpr int spatial_cell_tiles_ = 8;
         static constexpr float spatial_cell_size_ = tile_size_ * spatial_cell_tiles_;
@@ -146,10 +148,10 @@ namespace kotte
         TileMap map_;
         EntityStore entities_;
         std::vector<EntityHandle> enemy_handles_;
-        std::vector<EntityHandle> active_bomb_handles_;
         SpatialGrid spatial_grid_;
         Renderer renderer_;
         FrameActions frame_actions_;
+        std::array<EntityHandle, player_max_bombs_> bombs_inventory{}; // ASSIGNMENT EXTENSION NO. 6 !!!
         std::vector<PlaceBombRequest> place_bomb_requests_;
         std::vector<BombDetonated> bomb_detonated_facts_;
         std::vector<DestroyEntityRequest> destroy_entity_requests_;

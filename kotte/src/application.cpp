@@ -101,7 +101,7 @@ namespace kotte
 
     void Application::update_timed_gameplay(float delta_time){
         // This list is independent of camera queries, so off-screen fuses advance.
-        for(const EntityHandle bomb_handle : active_bomb_handles_){
+        for(const EntityHandle bomb_handle : bombs_inventory){
             Entity* bomb = entities_.try_get(bomb_handle);
             if(bomb == nullptr || !bomb->bomb_state.has_value()
                 || bomb->bomb_state->detonation_requested){
@@ -198,6 +198,7 @@ namespace kotte
 
         const Rectangle new_world_bounds = entity_world_bounds(player_entity);
         spatial_grid_.update(player_handle_, old_world_bounds, new_world_bounds);
+
     }
 
     void Application::try_move_player(Vector2 axis_displacement){
@@ -267,11 +268,42 @@ namespace kotte
         for(const PlaceBombRequest& request : place_bomb_requests_){
             const Entity* owner = entities_.try_get(request.owner);
             if(owner == nullptr || owner->kind != EntityKind::player
-                || owner_has_active_bomb(request.owner)){
+                || !check_if_have_available_bomb(request.owner)){
+                continue;
+            }
+            // ASSIGNMENT EXTENSION NO. 6 !!!
+
+            bool is_bomb_already_on_tile = false;
+            for (EntityHandle handle : bombs_inventory) {
+                const Entity* bomb = entities_.try_get(handle);
+                if (bomb != nullptr && bomb->bomb_state.has_value() && !bomb->bomb_state->is_available) {
+                    if (bomb->world_position.x == request.world_position.x &&
+                        bomb->world_position.y == request.world_position.y) {
+                        is_bomb_already_on_tile = true;
+                        break;
+                    }
+                }
+            }
+            if (is_bomb_already_on_tile) {
                 continue;
             }
 
-            const Entity bomb{
+            for (EntityHandle handle : bombs_inventory) {
+                Entity* bomb = entities_.try_get(handle);
+                if (bomb != nullptr && bomb->bomb_state.has_value() && bomb->bomb_state->is_available) {
+                    bomb->world_position = request.world_position;
+                    bomb->bomb_state->owner = request.owner;
+                    bomb->bomb_state->fuse_remaining = bomb_fuse_seconds_;
+                    bomb->bomb_state->blast_range = bomb_blast_range_;
+                    bomb->bomb_state->detonation_requested = false;
+                    bomb->bomb_state->is_available = false;
+
+                    spatial_grid_.insert(handle, entity_world_bounds(*bomb));
+                    break;
+                }
+
+            }
+            /*const Entity bomb{
                 .kind = EntityKind::bomb,
                 .world_position = request.world_position,
                 .bomb_state = BombState{
@@ -281,11 +313,12 @@ namespace kotte
                 }
             };
             const EntityHandle bomb_handle = entities_.create(bomb);
-
+            
             // The store owns the bomb; these handles are synchronized, non-owning
             // views used by spatial queries and timed gameplay.
             spatial_grid_.insert(bomb_handle, entity_world_bounds(bomb));
             active_bomb_handles_.push_back(bomb_handle);
+            */ //-> old code
         }
 
         place_bomb_requests_.clear();
@@ -301,7 +334,7 @@ namespace kotte
         destroy_entity_requests_.erase(duplicate_tail.begin(), duplicate_tail.end());
 
         for(const DestroyEntityRequest& request : destroy_entity_requests_){
-            const Entity* doomed = entities_.try_get(request.entity);
+            Entity* doomed = entities_.try_get(request.entity);
             if(doomed == nullptr){
                 continue;
             }
@@ -309,18 +342,22 @@ namespace kotte
             // Spatial membership is derived from the live entity, so remove it
             // while the handle can still resolve to the bounds used at insertion.
             spatial_grid_.remove(request.entity, entity_world_bounds(*doomed));
-            const bool destroyed = entities_.destroy(request.entity);
-            assert(destroyed);
-            (void) destroyed;
+            if (doomed->kind == EntityKind::bomb) {
+                if (doomed->bomb_state.has_value()) {
+                    doomed->bomb_state->is_available = true;
+                }
+            }
+            else {
+                const bool destroyed = entities_.destroy(request.entity);
+                assert(destroyed);
+                (void)destroyed;
+            }
         }
 
         // These update lists are non-owning views. A single cleanup pass keeps
         // their iteration dense without teaching each destruction source about
         // every list that happens to reference an entity.
         std::erase_if(enemy_handles_, [this](EntityHandle handle){
-            return !entities_.contains(handle);
-        });
-        std::erase_if(active_bomb_handles_, [this](EntityHandle handle){
             return !entities_.contains(handle);
         });
 
@@ -520,11 +557,21 @@ namespace kotte
             renderer_.command_count());
         DrawText(diagnostics.c_str(), 10, 34, 20, RAYWHITE);
 
+        const auto placed_bombs_count = std::ranges::count_if(bombs_inventory, [this](EntityHandle handle) {
+            const Entity* bomb = entities_.try_get(handle);
+            return bomb != nullptr && bomb->bomb_state.has_value() && !bomb->bomb_state->is_available;
+            });
+        const auto available_bombs_count = std::ranges::count_if(bombs_inventory, [this](EntityHandle handle) {
+            const Entity* bomb = entities_.try_get(handle);
+            return bomb != nullptr && bomb->bomb_state.has_value() && bomb->bomb_state->is_available;
+            });
+
         diagnostics = std::format(
-            "enemies updated: {} | active bombs: {} | blast effects: {}",
+            "enemies updated: {} | placed bombs: {} | blast effects: {} | available bombs: {}",
             collision_diagnostics_.enemy_updates,
-            active_bomb_handles_.size(),
-            blast_effects_.size());
+            placed_bombs_count,
+            blast_effects_.size(),
+            available_bombs_count);
         DrawText(diagnostics.c_str(), 10, 58, 20, RAYWHITE);
 
         diagnostics = std::format(
@@ -582,6 +629,22 @@ namespace kotte
                     enemy_handles_.push_back(handle);
                 }
             }
+        }
+        // ASSIGNMENT EXTENSION NO. 6 !!!
+        for (auto i = 0; i < player_max_bombs_; i++) {
+            const Entity bomb{
+                .kind = EntityKind::bomb,
+                .world_position = {0.0f, 0.0f},
+                .bomb_state = BombState{
+                    .owner = player_handle_,
+                    .fuse_remaining = bomb_fuse_seconds_,
+                    .blast_range = bomb_blast_range_,
+                    .detonation_requested = false,
+                    .is_available = true
+            }
+            };
+            //const EntityHandle bomb_handle = entities_.create(bomb); -> old code
+            bombs_inventory[i] = entities_.create(bomb);
         }
     }
 
@@ -736,15 +799,25 @@ namespace kotte
             (current_value + offset) % direction_count);
         return static_cast<CardinalDirection>(new_value);
     }
+    
+    bool Application::check_if_have_available_bomb(EntityHandle owner) const noexcept {
+        return std::ranges::any_of(bombs_inventory, [this, owner](EntityHandle bomb_handle) {
+            const Entity* bomb = entities_.try_get(bomb_handle);
+            return bomb != nullptr
+                && bomb->bomb_state.has_value()
+                && bomb->bomb_state->owner == owner
+                && bomb->bomb_state->is_available;
+            });
+    }
 
-    bool Application::owner_has_active_bomb(EntityHandle owner) const noexcept{
+    /*bool Application::owner_has_active_bomb(EntityHandle owner) const noexcept {
         return std::ranges::any_of(active_bomb_handles_, [this, owner](EntityHandle bomb_handle){
             const Entity* bomb = entities_.try_get(bomb_handle);
             return bomb != nullptr
                 && bomb->bomb_state.has_value()
                 && bomb->bomb_state->owner == owner;
         });
-    }
+    }*/
 
     Vector2 Application::tile_centre(Vector2 world_position) noexcept{
         const float tile_extent = static_cast<float>(tile_size_);
