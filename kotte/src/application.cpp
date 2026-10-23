@@ -96,6 +96,7 @@ namespace kotte
         // The player and every enemy are movers; each asks its own collision question.
         update_player(delta_time);
         update_enemies(delta_time);
+        check_player_collision();
         queue_bomb_placement();
     }
 
@@ -200,6 +201,29 @@ namespace kotte
         spatial_grid_.update(player_handle_, old_world_bounds, new_world_bounds);
 
     }
+    void Application::check_player_collision() noexcept
+    {
+        //ASSIGNMENT REQUIRED FEATURES NO.1
+        Entity* player = entities_.try_get(player_handle_);
+        if (player != nullptr && player->player_health.has_value() && !player->player_health->is_dead()) {
+            const Rectangle player_hitbox = entity_collision_bounds(*player);
+            const SpatialQuery query = spatial_grid_.query(player_hitbox);
+
+            for (const EntityHandle handle : query.entity_handles) {
+                if (handle == player_handle_) {
+                    continue;
+                }
+                Entity* candidate = entities_.try_get(handle);
+                if (candidate != nullptr && candidate->kind == EntityKind::enemy) {
+                    if (CheckCollisionRecs(player_hitbox, entity_collision_bounds(*candidate))) {
+                        player->player_health->take_damage();
+                        destroy_entity_requests_.push_back({ player_handle_ });
+                        break;
+                    }
+                }
+            }
+        };
+    }
 
     void Application::try_move_player(Vector2 axis_displacement){
         // Propose one horizontal or vertical player movement.
@@ -301,24 +325,7 @@ namespace kotte
                     spatial_grid_.insert(handle, entity_world_bounds(*bomb));
                     break;
                 }
-
             }
-            /*const Entity bomb{
-                .kind = EntityKind::bomb,
-                .world_position = request.world_position,
-                .bomb_state = BombState{
-                    .owner = request.owner,
-                    .fuse_remaining = bomb_fuse_seconds_,
-                    .blast_range = bomb_blast_range_
-                }
-            };
-            const EntityHandle bomb_handle = entities_.create(bomb);
-            
-            // The store owns the bomb; these handles are synchronized, non-owning
-            // views used by spatial queries and timed gameplay.
-            spatial_grid_.insert(bomb_handle, entity_world_bounds(bomb));
-            active_bomb_handles_.push_back(bomb_handle);
-            */ //-> old code
         }
 
         place_bomb_requests_.clear();
@@ -346,6 +353,12 @@ namespace kotte
                 if (doomed->bomb_state.has_value()) {
                     doomed->bomb_state->is_available = true;
                 }
+            }
+            else if (doomed->kind == EntityKind::player) {
+                bool destroyed = entities_.destroy(request.entity);
+                assert(destroyed);
+                (void)destroyed;
+                request_exit();
             }
             else {
                 const bool destroyed = entities_.destroy(request.entity);
@@ -382,7 +395,7 @@ namespace kotte
         bool blocked_by_crate = false;
 
         for(const EntityHandle handle : contacts.entity_handles){
-            const Entity* candidate = entities_.try_get(handle);
+            Entity* candidate = entities_.try_get(handle);
             if(candidate == nullptr
                 || !CheckCollisionRecs(tile_bounds, entity_collision_bounds(*candidate))){
                 continue;
@@ -398,6 +411,10 @@ namespace kotte
                 blocked_by_crate = true;
                 break;
             case EntityKind::player:
+                if (candidate->player_health.has_value() && !candidate->player_health->is_dead()) {
+                    candidate->player_health->take_damage();
+                    destroy_entity_requests_.push_back({ handle });
+                }
                 // Player-hit consequences are outside the Week 6 lifetime seam.
                 break;
             }
@@ -429,7 +446,11 @@ namespace kotte
     void Application::update_camera(float delta_time) noexcept{
         (void) delta_time; // name the argument to avoid the static analyzer yelling at us. :) We'll animate the camera later.
         camera_.set_viewport_size(window_.size());
-        camera_.set_centre(player().world_position);
+        Entity* player_entity = entities_.try_get(player_handle_);
+        if ( player_entity != nullptr) {
+            camera_.set_centre(player().world_position);
+        }
+        
     }
 
     void Application::render(){
@@ -600,7 +621,8 @@ namespace kotte
         // relocate slot storage. Handles remain valid even if this estimate grows.
         entities_.reserve(map_.tile_count() / 4);
 
-        const Entity player_entity{EntityKind::player, {tile_size_ * 2.5f, tile_size_ * 2.5f}};
+        Entity player_entity{EntityKind::player, {tile_size_ * 2.5f, tile_size_ * 2.5f}};
+        player_entity.player_health = PlayerHealth{};
         player_handle_ = entities_.create(player_entity);
         spatial_grid_.insert(player_handle_, entity_world_bounds(player_entity));
 
@@ -765,10 +787,10 @@ namespace kotte
 
     bool Application::is_solid(EntityKind kind) noexcept{
         switch(kind){
-        case EntityKind::player:
         case EntityKind::crate:
-        case EntityKind::enemy:
             return true;
+        case EntityKind::player:
+        case EntityKind::enemy:
         case EntityKind::bomb:
             return false;
         }
@@ -800,6 +822,7 @@ namespace kotte
         return static_cast<CardinalDirection>(new_value);
     }
     
+    //ASSIGNMENT EXTENSIONS NO.6
     bool Application::check_if_have_available_bomb(EntityHandle owner) const noexcept {
         return std::ranges::any_of(bombs_inventory, [this, owner](EntityHandle bomb_handle) {
             const Entity* bomb = entities_.try_get(bomb_handle);
@@ -809,15 +832,6 @@ namespace kotte
                 && bomb->bomb_state->is_available;
             });
     }
-
-    /*bool Application::owner_has_active_bomb(EntityHandle owner) const noexcept {
-        return std::ranges::any_of(active_bomb_handles_, [this, owner](EntityHandle bomb_handle){
-            const Entity* bomb = entities_.try_get(bomb_handle);
-            return bomb != nullptr
-                && bomb->bomb_state.has_value()
-                && bomb->bomb_state->owner == owner;
-        });
-    }*/
 
     Vector2 Application::tile_centre(Vector2 world_position) noexcept{
         const float tile_extent = static_cast<float>(tile_size_);
@@ -843,6 +857,7 @@ namespace kotte
         }
         return MAGENTA;
     }
+
 
     float Application::entity_roundness(EntityKind kind) noexcept{
         return kind == EntityKind::crate ? 0.15f : 0.8f;

@@ -36,7 +36,7 @@ namespace kotte
         Vector2 world_position{};
         CardinalDirection movement_heading = CardinalDirection::right;
         std::optional<BombState> bomb_state;
-        //std::optional<PlayerHealth> player_health; // ASSIGNMENT REQUIRED FEATURES NO. 1
+        std::optional<PlayerHealth> player_health; // ASSIGNMENT REQUIRED FEATURES NO. 1
     };
 
 }

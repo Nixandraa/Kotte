@@ -120,6 +120,7 @@ namespace kotte
         [[nodiscard]] static Vector2 tile_centre(int column, int row) noexcept;
         [[nodiscard]] static Color entity_color(EntityKind kind) noexcept;
         [[nodiscard]] static float entity_roundness(EntityKind kind) noexcept;
+        [[nodiscard]] void check_player_collision() noexcept; // ASSIGNMENT REQUIRED FEATURES NO.1
         static constexpr int player_max_bombs_ = 5; // ASSIGNMENT EXTENSION NO. 6 !!!
         static constexpr int tile_size_ = 40;
         static constexpr int spatial_cell_tiles_ = 8;
