@@ -29,6 +29,7 @@ namespace kotte
 
         void insert(EntityHandle entity_handle, Rectangle world_bounds);
         void remove(EntityHandle entity_handle, Rectangle world_bounds);
+        void clear() noexcept;
         void update(
             EntityHandle entity_handle,
             Rectangle old_world_bounds,

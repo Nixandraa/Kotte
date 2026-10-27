@@ -49,6 +49,13 @@ namespace kotte
         }
     }
 
+    void SpatialGrid::clear() noexcept
+    {
+        for (Cell& cell : cells_) {
+            cell.clear();
+        }
+    }
+
     void SpatialGrid::update(
         EntityHandle entity_handle,
         Rectangle old_world_bounds,

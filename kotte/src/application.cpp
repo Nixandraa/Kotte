@@ -49,10 +49,13 @@ namespace kotte
         // boundaries visible as the simulation grows.
         begin_frame();
         collect_frame_actions();
-        update_gameplay(delta_time);
-        update_timed_gameplay(delta_time);
-        resolve_gameplay_facts();
-        apply_structural_mutations();
+        // ASSIGNMENT REQUIRED FEATURES NO.2
+        if (game_state_ == GameState::Playing) {
+            update_gameplay(delta_time);
+            update_timed_gameplay(delta_time);
+            resolve_gameplay_facts();
+            apply_structural_mutations();
+        }
         update_presentation(delta_time);
         render();
     }
@@ -70,6 +73,15 @@ namespace kotte
         if(IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_Q)){
             request_exit();
         }
+
+        // ASSIGNMENT REQUIRED FEATURES NO.3
+        if (game_state_ != GameState::Playing) {
+            if (IsKeyPressed(KEY_R)) {
+                game_restart();
+            }
+            return;
+        }
+
         frame_actions_.place_bomb = IsKeyPressed(KEY_SPACE);
 
         Vector2& movement_direction = frame_actions_.player_movement_direction;
@@ -358,7 +370,8 @@ namespace kotte
                 bool destroyed = entities_.destroy(request.entity);
                 assert(destroyed);
                 (void)destroyed;
-                request_exit();
+                game_state_ = GameState::Lost; // ASSIGNMENT REQUIRED FEATURES NO.2
+                //request_exit();
             }
             else {
                 const bool destroyed = entities_.destroy(request.entity);
@@ -373,6 +386,11 @@ namespace kotte
         std::erase_if(enemy_handles_, [this](EntityHandle handle){
             return !entities_.contains(handle);
         });
+
+        // ASSIGNMENT REQUIRED FEATURES NO.2
+        if (game_state_ == GameState::Playing && enemy_handles_.empty()) {
+            game_state_ = GameState::Won;
+        }
 
         destroy_entity_requests_.clear();
     }
@@ -614,6 +632,25 @@ namespace kotte
         DrawText(diagnostics.c_str(), 10, window_.height() - 54, 20, RAYWHITE);
 
         DrawText("move: WASD/arrows | bomb: Space | quit: Q/Escape", 10, window_.height() - 30, 20, LIGHTGRAY);
+
+        // ASSIGNMENT REQUIRED FEATURES NO.2
+        Color info_color = RED;
+
+        switch (game_state_) {
+        case GameState::Playing:
+            diagnostics = "Game State: Playing";
+            break;
+        case GameState::Won:
+            diagnostics = "Game State: Won";
+            break;
+        case GameState::Lost:
+            diagnostics = "Game State: Lost";
+            break;
+        }
+        DrawText(diagnostics.c_str(), 10, 130, 20, info_color);
+
+        diagnostics = std::format("Defeat {} more enemies", enemy_handles_.size());
+        DrawText(diagnostics.c_str(), 10, 154, 20, YELLOW);
     }
 
     void Application::populate_entities(){
@@ -625,6 +662,12 @@ namespace kotte
         player_entity.player_health = PlayerHealth{};
         player_handle_ = entities_.create(player_entity);
         spatial_grid_.insert(player_handle_, entity_world_bounds(player_entity));
+
+        // ASSIGNMENT REQUIRED FEATURES NO.2
+        std::size_t target_enemy_number = 10;
+        std::size_t spawned_enemies = 0;
+        std::size_t spawn_zone_x = 40;
+        std::size_t spawn_zone_y = 35;
 
         for(int y = 1; y < map_.height() - 1; ++y){
             for(int x = 1; x < map_.width() - 1; ++x){
@@ -638,7 +681,13 @@ namespace kotte
                 if(kind_roll >= 15 && kind_roll < 19){
                     continue;
                 }
-                const EntityKind kind = kind_roll < 15 ? EntityKind::crate : EntityKind::enemy;
+                EntityKind kind = EntityKind::crate;
+                if (spawned_enemies < target_enemy_number && x <= spawn_zone_x && y <= spawn_zone_y ) {
+                    if (kind_roll >= 17) {
+                        kind = EntityKind::enemy;
+                        ++spawned_enemies;
+                    }
+                }             
                 const Vector2 world_position{
                     static_cast<float>(x * tile_size_ + tile_size_ / 2),
                     static_cast<float>(y * tile_size_ + tile_size_ / 2)
@@ -679,6 +728,29 @@ namespace kotte
                 random_.next<4, std::uint8_t>());
         }
     }
+
+    void Application::game_restart()
+    {
+        game_state_ = GameState::Playing;
+
+        random_ = Random{seed_};
+
+        enemy_handles_.clear();
+        frame_actions_ = {};
+        place_bomb_requests_.clear();
+        bomb_detonated_facts_.clear();
+        destroy_entity_requests_.clear();
+        blast_effects_.clear();
+        collision_diagnostics_ = {};
+        entities_ = {};
+        spatial_grid_.clear();
+        map_ = make_room(200, 120, random_);
+        populate_entities();
+        initialize_enemies();
+        camera_.set_centre(player().world_position);
+    }
+
+    
 
     Entity& Application::entity(EntityHandle handle) noexcept{
         Entity* resolved = entities_.try_get(handle);

@@ -47,6 +47,12 @@ namespace kotte
         void request_exit() noexcept;
 
     private:
+        // ASSIGNMENT REQUIRED FEATURES NO.2
+        enum class GameState {
+            Playing,
+            Won,
+            Lost
+        };
         struct FrameActions final {
             Vector2 player_movement_direction{};
             bool place_bomb = false;
@@ -102,6 +108,7 @@ namespace kotte
         void render();
         void populate_entities();
         void initialize_enemies();
+        void game_restart(); // ASSIGNMENT REQUIRED FEATURES NO.3
         [[nodiscard]] Entity& entity(EntityHandle handle) noexcept;
         [[nodiscard]] const Entity& entity(EntityHandle handle) const noexcept;
         [[nodiscard]] Entity& player() noexcept;
@@ -114,7 +121,6 @@ namespace kotte
         [[nodiscard]] static bool is_solid(EntityKind kind) noexcept;
         [[nodiscard]] static Vector2 cardinal_vector(CardinalDirection direction) noexcept;
         [[nodiscard]] CardinalDirection different_enemy_direction(CardinalDirection current_direction);
-        //[[nodiscard]] bool owner_has_active_bomb(EntityHandle owner) const noexcept; -> previous/original code
         [[nodiscard]] bool check_if_have_available_bomb(EntityHandle owner) const noexcept; // ASSIGNMENT EXTENSION NO. 6 !!!
         [[nodiscard]] static Vector2 tile_centre(Vector2 world_position) noexcept;
         [[nodiscard]] static Vector2 tile_centre(int column, int row) noexcept;
@@ -148,6 +154,7 @@ namespace kotte
         Random random_;
         TileMap map_;
         EntityStore entities_;
+        GameState game_state_ = GameState::Playing; // ASSIGNMENT REQUIRED FEATURES NO.2
         std::vector<EntityHandle> enemy_handles_;
         SpatialGrid spatial_grid_;
         Renderer renderer_;
