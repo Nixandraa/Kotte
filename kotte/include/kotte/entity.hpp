@@ -13,7 +13,8 @@ namespace kotte
         player,
         bomb,
         crate,
-        enemy
+        enemy,
+        buff // ASSIGNMENT REQUIRED FEATURES NO.5
     };
 
     enum class CardinalDirection : std::uint8_t {

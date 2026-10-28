@@ -127,6 +127,7 @@ namespace kotte
         [[nodiscard]] static Color entity_color(EntityKind kind) noexcept;
         [[nodiscard]] static float entity_roundness(EntityKind kind) noexcept;
         [[nodiscard]] void check_player_collision() noexcept; // ASSIGNMENT REQUIRED FEATURES NO.1
+        [[nodiscard]] void check_player_buff() noexcept; // ASSIGNMENT REQUIRED FEATURES NO.5
         static constexpr int player_max_bombs_ = 5; // ASSIGNMENT EXTENSION NO. 6 !!!
         static constexpr int tile_size_ = 40;
         static constexpr int spatial_cell_tiles_ = 8;
@@ -134,7 +135,9 @@ namespace kotte
         static constexpr float player_speed_ = 240.0f;
         static constexpr float enemy_speed_ = 80.0f;
         static constexpr float bomb_fuse_seconds_ = 2.0f;
-        static constexpr std::uint8_t bomb_blast_range_ = 3;
+        std::uint8_t bomb_blast_range_ = 3;
+        static constexpr std::uint8_t max_bomb_blast_range_ = 6; // ASSIGNMENT REQUIRED FEATURES NO.5
+        static constexpr std::uint8_t min_bomb_blast_range_ = 3; // ASSIGNMENT REQUIRED FEATURES NO.5
         static constexpr float blast_effect_seconds_ = 0.35f;
         static constexpr Color background_color_{0x11, 0x22, 0x33, 0xff};
         static constexpr Color floor_colors_[3]{

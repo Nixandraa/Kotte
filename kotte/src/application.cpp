@@ -109,6 +109,7 @@ namespace kotte
         update_player(delta_time);
         update_enemies(delta_time);
         check_player_collision();
+        check_player_buff();
         queue_bomb_placement();
     }
 
@@ -222,9 +223,6 @@ namespace kotte
             const SpatialQuery query = spatial_grid_.query(player_hitbox);
 
             for (const EntityHandle handle : query.entity_handles) {
-                if (handle == player_handle_) {
-                    continue;
-                }
                 Entity* candidate = entities_.try_get(handle);
                 if (candidate != nullptr && candidate->kind == EntityKind::enemy) {
                     if (CheckCollisionRecs(player_hitbox, entity_collision_bounds(*candidate))) {
@@ -232,6 +230,28 @@ namespace kotte
                         destroy_entity_requests_.push_back({ player_handle_ });
                         break;
                     }
+                }
+            }
+        };
+    }
+
+    void Application::check_player_buff() noexcept
+    {
+        //ASSIGNMENT REQUIRED FEATURES NO.5
+        Entity* player = entities_.try_get(player_handle_);
+        if (player != nullptr && player->player_health.has_value() && !player->player_health->is_dead()) {
+            const Rectangle player_hitbox = entity_collision_bounds(*player);
+            const SpatialQuery query = spatial_grid_.query(player_hitbox);
+
+            for (const EntityHandle handle : query.entity_handles) {
+                Entity* candidate = entities_.try_get(handle);
+                if (candidate != nullptr && candidate->kind == EntityKind::buff) {
+                    if (CheckCollisionRecs(player_hitbox, entity_collision_bounds(*candidate))) {
+                        bomb_blast_range_ = std::clamp(static_cast<std::uint8_t>(bomb_blast_range_ + 1),
+                            min_bomb_blast_range_, max_bomb_blast_range_);
+                        destroy_entity_requests_.push_back({ handle });
+                        break;
+                    };  
                 }
             }
         };
@@ -552,7 +572,7 @@ namespace kotte
             const Vector2 screen_position = camera_.world_to_screen({bounds.x, bounds.y});
             bounds.x = screen_position.x;
             bounds.y = screen_position.y;
-            const RenderLayer layer = visible_candidate->kind == EntityKind::bomb
+            const RenderLayer layer = visible_candidate->kind == EntityKind::bomb || visible_candidate->kind == EntityKind::buff
                 ? RenderLayer::ground
                 : RenderLayer::world;
             renderer_.submit({
@@ -581,6 +601,7 @@ namespace kotte
             : 100.0 * (1.0 - static_cast<double>(collision_diagnostics_.unique_candidates) / naive_collision_work);
 
         DrawFPS(GetScreenWidth() - 100, 2);
+        DrawText(std::format("Blast Range: {}/{}", bomb_blast_range_, max_bomb_blast_range_).c_str(), 10, 180, 20, RAYWHITE);
 
         const double percent_of_world = map_.tile_count() == 0 ? 0.0 : 100.0 * static_cast<double>(tiles_rendered) / static_cast<double>(map_.tile_count());
         diagnostics = std::format(
@@ -662,6 +683,15 @@ namespace kotte
         player_entity.player_health = PlayerHealth{};
         player_handle_ = entities_.create(player_entity);
         spatial_grid_.insert(player_handle_, entity_world_bounds(player_entity));
+
+        // ASSIGNMENT REQUIRED FEATURES NO.5
+        const Vector2 buff_position{
+            static_cast<float>(4 * tile_size_ + tile_size_ / 2),
+            static_cast<float>(2 * tile_size_ + tile_size_ / 2)
+        };
+        const Entity buff_entity{ EntityKind::buff, buff_position };
+        const EntityHandle buff_handle = entities_.create(buff_entity);
+        spatial_grid_.insert(buff_handle, entity_world_bounds(buff_entity));
 
         // ASSIGNMENT REQUIRED FEATURES NO.2
         std::size_t target_enemy_number = 10;
@@ -748,6 +778,7 @@ namespace kotte
         populate_entities();
         initialize_enemies();
         camera_.set_centre(player().world_position);
+        bomb_blast_range_ = min_bomb_blast_range_;
     }
 
     
@@ -779,6 +810,7 @@ namespace kotte
         case EntityKind::bomb: size = {22.0f, 22.0f}; break;
         case EntityKind::crate: size = {36.0f, 48.0f}; break;
         case EntityKind::enemy: size = {28.0f, 30.0f}; break;
+        case EntityKind::buff: size = {22.0f, 22.0f}; break; // ASSIGNMENT REQUIRED FEATURES NO.5
         }
 
         const Vector2 top_left = entity.world_position - Vector2{size.x / 2.0f, size.y};
@@ -795,6 +827,7 @@ namespace kotte
         case EntityKind::bomb: size = {18.0f, 12.0f}; break;
         case EntityKind::crate: size = {32.0f, 32.0f}; break;
         case EntityKind::enemy: size = {24.0f, 14.0f}; break;
+        case EntityKind::buff: size = {18.0f, 12.0f}; break;// ASSIGNMENT REQUIRED FEATURES NO.5
         }
 
         const Vector2 top_left = entity.world_position - Vector2{size.x / 2.0f, size.y};
@@ -805,8 +838,9 @@ namespace kotte
         EntityHandle moving_entity_handle,
         Vector2 proposed_position){
         Entity proposed_entity = entity(moving_entity_handle);
-        proposed_entity.world_position = proposed_position;
+        const Rectangle current_collision_bounds = entity_collision_bounds(proposed_entity);
 
+        proposed_entity.world_position = proposed_position;
         // Room walls are a simple boundary rule in the current map. Test the
         // complete visual bounds directly before asking the grid about entities.
         const Rectangle proposed_world_bounds = entity_world_bounds(proposed_entity);
@@ -846,9 +880,17 @@ namespace kotte
                 continue;
             }
 
+            // ASSIGNMENT REQUIRED FEATURES NO.4
             // Narrow phase: exact-test the remaining solid candidate.
             ++collision_diagnostics_.exact_tests;
             if(CheckCollisionRecs(proposed_collision_bounds, entity_collision_bounds(*candidate))){
+                if (candidate->kind == EntityKind::bomb && candidate->bomb_state.has_value()) {
+                    if (candidate->bomb_state->owner == moving_entity_handle) {
+                        if (CheckCollisionRecs(current_collision_bounds, entity_collision_bounds(*candidate))) {
+                            continue;
+                        }
+                    }
+                }
                 ++collision_diagnostics_.contacts;
                 blocked = true;
             }
@@ -860,10 +902,11 @@ namespace kotte
     bool Application::is_solid(EntityKind kind) noexcept{
         switch(kind){
         case EntityKind::crate:
+        case EntityKind::bomb:
             return true;
         case EntityKind::player:
         case EntityKind::enemy:
-        case EntityKind::bomb:
+        case EntityKind::buff:
             return false;
         }
 
@@ -926,6 +969,7 @@ namespace kotte
         case EntityKind::bomb: return bomb_color_;
         case EntityKind::crate: return crate_color_;
         case EntityKind::enemy: return enemy_color_;
+        case EntityKind::buff: return GREEN;
         }
         return MAGENTA;
     }
