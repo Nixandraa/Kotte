@@ -14,6 +14,7 @@
 #include <raylib.h>
 #include <string_view>
 #include <vector>
+#include <array>
 
 namespace kotte
 {
@@ -56,6 +57,7 @@ namespace kotte
         struct FrameActions final {
             Vector2 player_movement_direction{};
             bool place_bomb = false;
+            bool remote_detonation = false; // ASSIGNMENT EXTENSIONS NO.13
         };
 
         struct PlaceBombRequest final {
@@ -126,8 +128,10 @@ namespace kotte
         [[nodiscard]] static Vector2 tile_centre(int column, int row) noexcept;
         [[nodiscard]] static Color entity_color(EntityKind kind) noexcept;
         [[nodiscard]] static float entity_roundness(EntityKind kind) noexcept;
-        [[nodiscard]] void check_player_collision() noexcept; // ASSIGNMENT REQUIRED FEATURES NO.1
-        [[nodiscard]] void check_player_buff() noexcept; // ASSIGNMENT REQUIRED FEATURES NO.5
+        void check_player_collision() noexcept; // ASSIGNMENT REQUIRED FEATURES NO.1
+        void remotely_detonate() noexcept; // ASSIGNMENT EXTENSION NO.13
+        void check_player_buff() noexcept; // ASSIGNMENT REQUIRED FEATURES NO.5
+        int enemies_to_kill_ = 5;// ASSIGNMENT REQUIRED FEATURES NO.2
         static constexpr int player_max_bombs_ = 5; // ASSIGNMENT EXTENSION NO. 6 !!!
         static constexpr int tile_size_ = 40;
         static constexpr int spatial_cell_tiles_ = 8;

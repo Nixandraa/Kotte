@@ -83,6 +83,7 @@ namespace kotte
         }
 
         frame_actions_.place_bomb = IsKeyPressed(KEY_SPACE);
+        frame_actions_.remote_detonation = IsKeyPressed(KEY_ENTER); // ASSIGNMENT EXTENSIONS NO.13
 
         Vector2& movement_direction = frame_actions_.player_movement_direction;
         if(IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)){
@@ -110,6 +111,7 @@ namespace kotte
         update_enemies(delta_time);
         check_player_collision();
         check_player_buff();
+        remotely_detonate();
         queue_bomb_placement();
     }
 
@@ -118,7 +120,8 @@ namespace kotte
         for(const EntityHandle bomb_handle : bombs_inventory){
             Entity* bomb = entities_.try_get(bomb_handle);
             if(bomb == nullptr || !bomb->bomb_state.has_value()
-                || bomb->bomb_state->detonation_requested){
+                || bomb->bomb_state->detonation_requested 
+                || bomb->bomb_state->is_available){
                 continue;
             }
 
@@ -212,6 +215,9 @@ namespace kotte
 
         const Rectangle new_world_bounds = entity_world_bounds(player_entity);
         spatial_grid_.update(player_handle_, old_world_bounds, new_world_bounds);
+        if (player_entity.player_health.has_value()) {
+            player_entity.player_health->set_shield(delta_time);
+        }
 
     }
     void Application::check_player_collision() noexcept
@@ -226,13 +232,30 @@ namespace kotte
                 Entity* candidate = entities_.try_get(handle);
                 if (candidate != nullptr && candidate->kind == EntityKind::enemy) {
                     if (CheckCollisionRecs(player_hitbox, entity_collision_bounds(*candidate))) {
-                        player->player_health->take_damage();
-                        destroy_entity_requests_.push_back({ player_handle_ });
-                        break;
+                        if (!player->player_health->has_shield()) {
+                            player->player_health->take_damage();
+                            destroy_entity_requests_.push_back({ player_handle_ });
+                            break;
+                        }
                     }
                 }
             }
-        };
+        }
+    }
+
+    //ASSIGNMENT REQUIRED FEATURES NO.13
+    void Application::remotely_detonate() noexcept
+    {
+        if (!frame_actions_.remote_detonation) {
+            return;
+        }
+        for (EntityHandle handle : bombs_inventory) {
+            Entity* bomb = entities_.try_get(handle);
+            if (bomb != nullptr && bomb->bomb_state.has_value() && !bomb->bomb_state->is_available &&
+                bomb->bomb_state->owner == player_handle_ && !bomb->bomb_state->detonation_requested) {
+                bomb->bomb_state->fuse_remaining = 0.0f;
+            }
+        }
     }
 
     void Application::check_player_buff() noexcept
@@ -251,10 +274,10 @@ namespace kotte
                             min_bomb_blast_range_, max_bomb_blast_range_);
                         destroy_entity_requests_.push_back({ handle });
                         break;
-                    };  
+                    }  
                 }
             }
-        };
+        }
     }
 
     void Application::try_move_player(Vector2 axis_displacement){
@@ -327,7 +350,7 @@ namespace kotte
                 || !check_if_have_available_bomb(request.owner)){
                 continue;
             }
-            // ASSIGNMENT EXTENSION NO. 6 !!!
+            // ASSIGNMENT EXTENSION NO. 6 
 
             bool is_bomb_already_on_tile = false;
             for (EntityHandle handle : bombs_inventory) {
@@ -391,9 +414,18 @@ namespace kotte
                 assert(destroyed);
                 (void)destroyed;
                 game_state_ = GameState::Lost; // ASSIGNMENT REQUIRED FEATURES NO.2
-                //request_exit();
             }
             else {
+                if (doomed->kind == EntityKind::enemy) {
+                    if (enemies_to_kill_ > 0) {
+                        enemies_to_kill_--;
+                    }
+                    // ASSIGNMENT EXTENSION NO. 8 
+                    Entity* player_entity = entities_.try_get(player_handle_);
+                    if (player_entity != nullptr && player_entity->player_health.has_value()) {
+                        player_entity->player_health->count_enemy_kills();
+                    }
+                }
                 const bool destroyed = entities_.destroy(request.entity);
                 assert(destroyed);
                 (void)destroyed;
@@ -408,7 +440,7 @@ namespace kotte
         });
 
         // ASSIGNMENT REQUIRED FEATURES NO.2
-        if (game_state_ == GameState::Playing && enemy_handles_.empty()) {
+        if (game_state_ == GameState::Playing && enemies_to_kill_ <= 0) {
             game_state_ = GameState::Won;
         }
 
@@ -439,23 +471,30 @@ namespace kotte
                 continue;
             }
 
-            switch(candidate->kind){
+            switch (candidate->kind) {
             case EntityKind::bomb:
-            case EntityKind::enemy:
-                destroy_entity_requests_.push_back({handle});
                 break;
+            case EntityKind::enemy:{
+                destroy_entity_requests_.push_back({ handle });
+                break;
+            }
             case EntityKind::crate:
-                destroy_entity_requests_.push_back({handle});
+                destroy_entity_requests_.push_back({ handle });
                 blocked_by_crate = true;
                 break;
             case EntityKind::player:
                 if (candidate->player_health.has_value() && !candidate->player_health->is_dead()) {
-                    candidate->player_health->take_damage();
-                    destroy_entity_requests_.push_back({ handle });
+                    if (!candidate->player_health->has_shield()) {
+                        candidate->player_health->take_damage();
+                        destroy_entity_requests_.push_back({ handle });
+                    }
                 }
                 // Player-hit consequences are outside the Week 6 lifetime seam.
                 break;
+            case EntityKind::buff:
+                break;
             }
+
         }
 
         return blocked_by_crate;
@@ -575,9 +614,17 @@ namespace kotte
             const RenderLayer layer = visible_candidate->kind == EntityKind::bomb || visible_candidate->kind == EntityKind::buff
                 ? RenderLayer::ground
                 : RenderLayer::world;
+
+            // ASSIGNMENT EXTENSION NO. 8  
+            Color color = entity_color(visible_candidate->kind);
+            if (visible_candidate->kind == EntityKind::player
+                && visible_candidate->player_health.has_value()
+                && visible_candidate->player_health->has_shield()) {
+                color = BLUE;
+            }
             renderer_.submit({
                 bounds,
-                entity_color(visible_candidate->kind),
+                color,
                 layer,
                 visible_candidate->world_position.y,
                 entity_roundness(visible_candidate->kind)
@@ -652,10 +699,10 @@ namespace kotte
             "world: {} x {} tiles | {} total", map_.width(), map_.height(), map_.tile_count());
         DrawText(diagnostics.c_str(), 10, window_.height() - 54, 20, RAYWHITE);
 
-        DrawText("move: WASD/arrows | bomb: Space | quit: Q/Escape", 10, window_.height() - 30, 20, LIGHTGRAY);
+        DrawText("move: WASD/arrows | bomb: Space | quit: Q/Escape | detonate: Enter | restart: R", 10, window_.height() - 30, 20, LIGHTGRAY);
 
         // ASSIGNMENT REQUIRED FEATURES NO.2
-        Color info_color = RED;
+        Color info_color = PURPLE;
 
         switch (game_state_) {
         case GameState::Playing:
@@ -670,8 +717,18 @@ namespace kotte
         }
         DrawText(diagnostics.c_str(), 10, 130, 20, info_color);
 
-        diagnostics = std::format("Defeat {} more enemies", enemy_handles_.size());
+        diagnostics = std::format("Defeat {} more enemies", enemies_to_kill_);
         DrawText(diagnostics.c_str(), 10, 154, 20, YELLOW);
+
+        const Entity* player_entity = entities_.try_get(player_handle_);
+        if (player_entity != nullptr && player_entity->player_health.has_value() 
+            && player_entity->player_health->has_shield()) {
+            diagnostics = "Shield Applied";
+        }
+        else {
+            diagnostics = "No Shield";
+        }
+        DrawText(diagnostics.c_str(), 10, 204, 20, RED);
     }
 
     void Application::populate_entities(){
@@ -693,15 +750,9 @@ namespace kotte
         const EntityHandle buff_handle = entities_.create(buff_entity);
         spatial_grid_.insert(buff_handle, entity_world_bounds(buff_entity));
 
-        // ASSIGNMENT REQUIRED FEATURES NO.2
-        std::size_t target_enemy_number = 10;
-        std::size_t spawned_enemies = 0;
-        std::size_t spawn_zone_x = 40;
-        std::size_t spawn_zone_y = 35;
-
         for(int y = 1; y < map_.height() - 1; ++y){
             for(int x = 1; x < map_.width() - 1; ++x){
-                if((x == 2 && y == 2) || map_.at(x, y).type != TileType::floor || !random_.coin_flip(0.25f)){
+                if((x == 2 && y == 2) || (x == 4 && y == 2) ||  map_.at(x, y).type != TileType::floor || !random_.coin_flip(0.25f)){
                     continue;
                 }
 
@@ -711,13 +762,7 @@ namespace kotte
                 if(kind_roll >= 15 && kind_roll < 19){
                     continue;
                 }
-                EntityKind kind = EntityKind::crate;
-                if (spawned_enemies < target_enemy_number && x <= spawn_zone_x && y <= spawn_zone_y ) {
-                    if (kind_roll >= 17) {
-                        kind = EntityKind::enemy;
-                        ++spawned_enemies;
-                    }
-                }             
+                const EntityKind kind = kind_roll < 15 ? EntityKind::crate : EntityKind::enemy;        
                 const Vector2 world_position{
                     static_cast<float>(x * tile_size_ + tile_size_ / 2),
                     static_cast<float>(y * tile_size_ + tile_size_ / 2)
@@ -765,6 +810,7 @@ namespace kotte
 
         random_ = Random{seed_};
 
+        enemies_to_kill_ = 5;
         enemy_handles_.clear();
         frame_actions_ = {};
         place_bomb_requests_.clear();
@@ -775,10 +821,10 @@ namespace kotte
         entities_ = {};
         spatial_grid_.clear();
         map_ = make_room(200, 120, random_);
+        bomb_blast_range_ = min_bomb_blast_range_;
         populate_entities();
         initialize_enemies();
         camera_.set_centre(player().world_position);
-        bomb_blast_range_ = min_bomb_blast_range_;
     }
 
     
@@ -885,7 +931,8 @@ namespace kotte
             ++collision_diagnostics_.exact_tests;
             if(CheckCollisionRecs(proposed_collision_bounds, entity_collision_bounds(*candidate))){
                 if (candidate->kind == EntityKind::bomb && candidate->bomb_state.has_value()) {
-                    if (candidate->bomb_state->owner == moving_entity_handle) {
+                    const Entity* owner = entities_.try_get(candidate->bomb_state->owner);
+                    if (owner != nullptr && candidate->bomb_state->owner == moving_entity_handle) {
                         if (CheckCollisionRecs(current_collision_bounds, entity_collision_bounds(*candidate))) {
                             continue;
                         }
