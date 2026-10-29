@@ -1,35 +1,26 @@
-# Bomberman World — [your game title]
-
-**Student:** [your name]
-
-> Replace the prompts below and remove these instructions. Keep answers brief. Your implementation explanations and reflection belong in the presentation; you do not need to write them out here. Complete the final section only if seeking Pass with Distinction (VG).
+# Bomberman World - Basic Bomberman
+**Student:** Nina Aleksandra Zarna
 
 ## How to play
 
-- **Controls:** [movement, bombs, restart, and any extension controls]
-- **Objective and rules:** [how to win/lose; which result wins if both happen together; any extension rules needed to understand the game]
+- **Controls:** The movement is with WASD or arrow keys. To drop a bomb, press SPACE. To remotely detonate a bomb, press ENTER. To restart the game, press R. To quit the game, press Q or ESC key.
+- **Objective and rules:** To win the game, the player must kill 5 enemies by using a bomb. The player has a maximum of 5 bombs. Once detonated, the bombs return to the player’s inventory. The player has 1 health point (HP), which means that any collision with an enemy or a bomb results in a loss. During the game, the player can gain a temporary invulnerability. The shield activates automatically for 5 seconds every 2 kills. 
 - **Configurations / demo setup:** [how to select gameplay/stress configurations and use any special setup or debug keys; write “default” where appropriate]
 
 ## Features and validation
 
-(delete this pre-amble before submitting the assignment) Complete the five required features and three extensions of your choice. For each row, document **at least one useful check: what you tested, what you observed, and how the result compares with the expected behaviour**. One or two sentences per feature are enough. Choose a check that could reveal a mistake, such as a boundary case or interaction.
-
-Use the practical checks in the assignment to validate the acceptance conditions during development; this table is a small sample of that work. Manual play in a small, repeatable setup is sufficient. You can also use a debugger, temporary logging, or small scenarios set up in code. Screenshots, recordings, automated tests etc are welcome, but not required. Be ready to explain the relevant rules in your code.
-
 | Feature | Check, observed result, and expected behaviour |
 | --- | --- |
-| 1. Player damage and death | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| 2. Round states and objective | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| 3. Safe restart | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| 4. Solid bombs with owner escape | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| 5. Blast-range pickup | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| [# and name of chosen extension 1] | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| [# and name of chosen extension 2] | [what I tested, what I observed, and whether it matched the expected behaviour] |
-| [# and name of chosen extension 3] | [what I tested, what I observed, and whether it matched the expected behaviour] |
+| 1. Player damage and death | I walked very close next to the enemy, without touching it, then I walked straight into it. I survived while passing next to enemy, but died when I touched the enemy, what was an expected behaviour. |
+| 2. Round states and objective | I tried to first lose the game and then I tried to win. In both cases, the game became frozen after reaching the win/lose state. I couldn't move or place any bomb, enemies were not moving as well, what was an expected behaviour. |
+| 3. Safe restart | I placed a bomb and then immediately bumped into the enemy, and then pressed R to restart the game. I performed this action multiple times. Every time, before restarting (when game was lost) I didn't have that bomb available, but after pressing restart, the bomb became available again, what was an expected behaviour. |
+| 4. Solid bombs with owner escape | I placed a bomb, tried to leave,and then tried to move on top of the bomb again. I could move right away after placing the bomb, but couldn't go on top of it afterwards, what was an expected behaviour. |
+| 5. Blast-range pickup | I placed a bomb, then I picked-up the buff before the bomb exploaded. After it exploaded, I placed another bomb and watched its blast. The first bomb, despite picking up the buff, had a blast before the buff (=3). The new bomb already had a buffed blast (=4), what was an expected behaviour.   |
+| 6. Multiple bombs per owner | I placed 5 bombs (max capacity), and then tried to place 6th. When I reached the capacity, I couldn't place any other bomb. Once 1 bomb exploaded, I was able to place it back again so after explosion it returned to the pool, what was an expected behaviour.  |
+| 8. Shield or temporary invulnerability | Once the shield was active I tried to bump into an enemy and stand inside the bomb. I tried to do the same while shield was inactive. While active, I wasn't getting any damage, but once the shield wore off, both enemy and bomb caused damage, what was an expected behaviour. |
+| 13. Remote-detonated bombs | I placed the bomb, moved away and pressed enter to detonate it. Then, while no bomb was placed, I pressed enter multiple times. While bomb was active on the map, pressing enter caused detonation, but without any bomb on the map, pressing enter had no effect and didn't cause any game crash, what was an expected behaviour. |
 
-Example: “I ended a round with live bombs and restarted three times to check that old-round state was cleared. No old explosions appeared, and bomb capacity reset each time.” Report your actual results, including any failures or remaining limitations; stating that something “works” does not describe a check.
-
-**Known issues:** [remaining problems and how to encounter them, or “None known after testing”]
+**Known issues:** None known after testing.
 
 ## Sources and assistance
 
@@ -37,28 +28,5 @@ This project builds on the shared Kotte foundations.
 
 [Briefly identify meaningful external code/resources, discussion or collaboration, and AI assistance. Link to sources where relevant, say what they contributed, and explain what you checked yourself. State “None beyond the course material” if applicable. No prompt transcript or activity diary is needed. Retain required licence/attribution notices.]
 
-## Architectural investigation — VG only
-
-Delete this section for a G submission. For VG, pose a focused engineering question about one decision in your implementation, investigate it, and draw a conclusion from evidence. Documenting the explanation already required for G is not enough. Aim for half a page to one page, excluding small tables, diagrams, or code excerpts. You can use the same decision in your presentation too.
-
-### Decision
-
-[State the question you are investigating and the implementation decision it concerns. Describe your current approach and a plausible alternative. Identify the relevant code. You do not need to implement the alternative.]
-
-### Method
-
-[How did you investigate the decision? Give enough detail to reproduce the key observation: setup, input, configuration/seed, and the test, trace, debugger inspection, or other method used.]
-
-### Evidence
-
-[What did you actually observe in your game? Include the relevant result or a small excerpt, table, or link to supporting material.]
-
-### Interpretation
-
-[Explain why it happened using the relevant code or architecture. Analyse at least one edge case, failure, defect, limitation, or trade-off illustrated by the investigation. Discuss relevant consequences for correctness, maintainability, performance, and/or scalability; you do not need to cover all four.]
-
-### Conclusion
-
-[When is your approach appropriate, what limits it, and when might an alternative become preferable? Base the conclusion on your evidence. Confirming that the current approach is suitable is a valid result.]
 
 <!-- Submission: commit and push this README with your source to GitHub or the internal Gitea server. Submit the final commit link and a runnable Release ZIP from that version in Studium. Ensure the teacher can access the repository throughout assessment. -->
