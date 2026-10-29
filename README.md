@@ -1,11 +1,11 @@
-# Bomberman World - Basic Bomberman
+# Bomberman World
 **Student:** Nina Aleksandra Zarna
 
 ## How to play
 
-- **Controls:** The movement is with WASD or arrow keys. To drop a bomb, press SPACE. To remotely detonate a bomb, press ENTER. To restart the game, press R. To quit the game, press Q or ESC key.
-- **Objective and rules:** To win the game, the player must kill 5 enemies by using a bomb. The player has a maximum of 5 bombs. Once detonated, the bombs return to the player’s inventory. The player has 1 health point (HP), which means that any collision with an enemy or a bomb results in a loss. During the game, the player can gain a temporary invulnerability. The shield activates automatically for 5 seconds every 2 kills. 
-- **Configurations / demo setup:** [how to select gameplay/stress configurations and use any special setup or debug keys; write “default” where appropriate]
+- **Controls:** To move, use WASD or arrow keys. To drop a bomb, press SPACE. To remotely detonate a bomb, press ENTER. To restart the game, press R. To quit the game, press Q or ESC key.
+- **Objective and rules:** To win the game, the player must kill 5 enemies by using a bomb. The player has a pool consisting of 5 bombs. Once detonated, the bomb returns to the player’s inventory. The player has 1 health point (HP), which means that any collision with an enemy or a bomb results in a loss. During the game, the player can gain a temporary invulnerability. The shield activates automatically for 5 seconds every 2 kills. 
+- **Configurations / demo setup:** Default.
 
 ## Features and validation
 
@@ -25,8 +25,7 @@
 ## Sources and assistance
 
 This project builds on the shared Kotte foundations.
-
-[Briefly identify meaningful external code/resources, discussion or collaboration, and AI assistance. Link to sources where relevant, say what they contributed, and explain what you checked yourself. State “None beyond the course material” if applicable. No prompt transcript or activity diary is needed. Retain required licence/attribution notices.]
-
-
-<!-- Submission: commit and push this README with your source to GitHub or the internal Gitea server. Submit the final commit link and a runnable Release ZIP from that version in Studium. Ensure the teacher can access the repository throughout assessment. -->
+While working on the project, I used the below websites for learning, syntax explanation, and debugging guidance. 
+https://en.cppreference.com/
+https://stackoverflow.com/
+https://www.geeksforgeeks.org/
