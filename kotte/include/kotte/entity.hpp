@@ -1,7 +1,7 @@
 #pragma once
 
 #include "kotte/entity_handle.hpp"
-#include "../player_health.hpp"
+#include "kotte/player_health.hpp"
 
 #include <cstdint>
 #include <optional>

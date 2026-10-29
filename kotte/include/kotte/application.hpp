@@ -123,16 +123,17 @@ namespace kotte
         [[nodiscard]] static bool is_solid(EntityKind kind) noexcept;
         [[nodiscard]] static Vector2 cardinal_vector(CardinalDirection direction) noexcept;
         [[nodiscard]] CardinalDirection different_enemy_direction(CardinalDirection current_direction);
-        [[nodiscard]] bool check_if_have_available_bomb(EntityHandle owner) const noexcept; // ASSIGNMENT EXTENSION NO. 6 !!!
         [[nodiscard]] static Vector2 tile_centre(Vector2 world_position) noexcept;
         [[nodiscard]] static Vector2 tile_centre(int column, int row) noexcept;
         [[nodiscard]] static Color entity_color(EntityKind kind) noexcept;
         [[nodiscard]] static float entity_roundness(EntityKind kind) noexcept;
-        void check_player_collision() noexcept; // ASSIGNMENT REQUIRED FEATURES NO.1
+        [[nodiscard]] bool has_available_bomb(EntityHandle owner) const noexcept; // ASSIGNMENT EXTENSION NO. 6 
+        void check_player_enemy_collision(); // ASSIGNMENT REQUIRED FEATURES NO.1
         void remotely_detonate() noexcept; // ASSIGNMENT EXTENSION NO.13
-        void check_player_buff() noexcept; // ASSIGNMENT REQUIRED FEATURES NO.5
-        int enemies_to_kill_ = 5;// ASSIGNMENT REQUIRED FEATURES NO.2
-        static constexpr int player_max_bombs_ = 5; // ASSIGNMENT EXTENSION NO. 6 !!!
+        void collect_player_buff(); // ASSIGNMENT REQUIRED FEATURES NO.5
+        int enemies_to_kill_ = player_win_objective;// ASSIGNMENT REQUIRED FEATURES NO.2
+        static constexpr int player_win_objective = 5; // ASSIGNMENT REQUIRED FEATURES NO.2
+        static constexpr int player_max_bombs_ = 5; // ASSIGNMENT EXTENSION NO. 6
         static constexpr int tile_size_ = 40;
         static constexpr int spatial_cell_tiles_ = 8;
         static constexpr float spatial_cell_size_ = tile_size_ * spatial_cell_tiles_;

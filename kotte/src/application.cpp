@@ -109,8 +109,8 @@ namespace kotte
         // The player and every enemy are movers; each asks its own collision question.
         update_player(delta_time);
         update_enemies(delta_time);
-        check_player_collision();
-        check_player_buff();
+        check_player_enemy_collision();
+        collect_player_buff();
         remotely_detonate();
         queue_bomb_placement();
     }
@@ -216,24 +216,24 @@ namespace kotte
         const Rectangle new_world_bounds = entity_world_bounds(player_entity);
         spatial_grid_.update(player_handle_, old_world_bounds, new_world_bounds);
         if (player_entity.player_health.has_value()) {
-            player_entity.player_health->set_shield(delta_time);
+            player_entity.player_health->update_shield(delta_time);
         }
 
     }
-    void Application::check_player_collision() noexcept
+    void Application::check_player_enemy_collision()
     {
         //ASSIGNMENT REQUIRED FEATURES NO.1
-        Entity* player = entities_.try_get(player_handle_);
-        if (player != nullptr && player->player_health.has_value() && !player->player_health->is_dead()) {
-            const Rectangle player_hitbox = entity_collision_bounds(*player);
+        Entity* player_entity = entities_.try_get(player_handle_);
+        if (player_entity != nullptr && player_entity->player_health.has_value() && !player_entity->player_health->is_dead()) {
+            const Rectangle player_hitbox = entity_collision_bounds(*player_entity);
             const SpatialQuery query = spatial_grid_.query(player_hitbox);
 
             for (const EntityHandle handle : query.entity_handles) {
                 Entity* candidate = entities_.try_get(handle);
                 if (candidate != nullptr && candidate->kind == EntityKind::enemy) {
                     if (CheckCollisionRecs(player_hitbox, entity_collision_bounds(*candidate))) {
-                        if (!player->player_health->has_shield()) {
-                            player->player_health->take_damage();
+                        if (!player_entity->player_health->has_shield()) {
+                            player_entity->player_health->take_damage();
                             destroy_entity_requests_.push_back({ player_handle_ });
                             break;
                         }
@@ -243,7 +243,7 @@ namespace kotte
         }
     }
 
-    //ASSIGNMENT REQUIRED FEATURES NO.13
+    //ASSIGNMENT EXTENSIONS NO.13
     void Application::remotely_detonate() noexcept
     {
         if (!frame_actions_.remote_detonation) {
@@ -258,12 +258,12 @@ namespace kotte
         }
     }
 
-    void Application::check_player_buff() noexcept
+    void Application::collect_player_buff()
     {
         //ASSIGNMENT REQUIRED FEATURES NO.5
-        Entity* player = entities_.try_get(player_handle_);
-        if (player != nullptr && player->player_health.has_value() && !player->player_health->is_dead()) {
-            const Rectangle player_hitbox = entity_collision_bounds(*player);
+        Entity* player_entity = entities_.try_get(player_handle_);
+        if (player_entity != nullptr && player_entity->player_health.has_value() && !player_entity->player_health->is_dead()) {
+            const Rectangle player_hitbox = entity_collision_bounds(*player_entity);
             const SpatialQuery query = spatial_grid_.query(player_hitbox);
 
             for (const EntityHandle handle : query.entity_handles) {
@@ -347,7 +347,7 @@ namespace kotte
         for(const PlaceBombRequest& request : place_bomb_requests_){
             const Entity* owner = entities_.try_get(request.owner);
             if(owner == nullptr || owner->kind != EntityKind::player
-                || !check_if_have_available_bomb(request.owner)){
+                || !has_available_bomb(request.owner)){
                 continue;
             }
             // ASSIGNMENT EXTENSION NO. 6 
@@ -489,7 +489,6 @@ namespace kotte
                         destroy_entity_requests_.push_back({ handle });
                     }
                 }
-                // Player-hit consequences are outside the Week 6 lifetime seam.
                 break;
             case EntityKind::buff:
                 break;
@@ -717,7 +716,7 @@ namespace kotte
         }
         DrawText(diagnostics.c_str(), 10, 130, 20, info_color);
 
-        diagnostics = std::format("Defeat {} more enemies", enemies_to_kill_);
+        diagnostics = std::format("Defeated enemies {}/{}", (player_win_objective - enemies_to_kill_), player_win_objective);
         DrawText(diagnostics.c_str(), 10, 154, 20, YELLOW);
 
         const Entity* player_entity = entities_.try_get(player_handle_);
@@ -789,7 +788,6 @@ namespace kotte
                     .is_available = true
             }
             };
-            //const EntityHandle bomb_handle = entities_.create(bomb); -> old code
             bombs_inventory[i] = entities_.create(bomb);
         }
     }
@@ -810,7 +808,7 @@ namespace kotte
 
         random_ = Random{seed_};
 
-        enemies_to_kill_ = 5;
+        enemies_to_kill_ = player_win_objective;
         enemy_handles_.clear();
         frame_actions_ = {};
         place_bomb_requests_.clear();
@@ -985,7 +983,7 @@ namespace kotte
     }
     
     //ASSIGNMENT EXTENSIONS NO.6
-    bool Application::check_if_have_available_bomb(EntityHandle owner) const noexcept {
+    bool Application::has_available_bomb(EntityHandle owner) const noexcept {
         return std::ranges::any_of(bombs_inventory, [this, owner](EntityHandle bomb_handle) {
             const Entity* bomb = entities_.try_get(bomb_handle);
             return bomb != nullptr

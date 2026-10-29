@@ -103,7 +103,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="player_health.cpp" />
+    <ClCompile Include="src\player_health.cpp" />
     <ClCompile Include="src\application.cpp" />
     <ClCompile Include="src\camera.cpp" />
     <ClCompile Include="src\entity_store.cpp" />
@@ -124,7 +124,7 @@
     <ClInclude Include="include\kotte\spatial_grid.hpp" />
     <ClInclude Include="include\kotte\tile_map.hpp" />
     <ClInclude Include="include\kotte\window.hpp" />
-    <ClInclude Include="player_health.hpp" />
+    <ClInclude Include="include\kotte\player_health.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

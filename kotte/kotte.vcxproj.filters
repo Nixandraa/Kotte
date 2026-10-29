@@ -39,7 +39,7 @@
     <ClCompile Include="src\entity_store.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="player_health.cpp">
+    <ClCompile Include="src\player_health.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -74,7 +74,7 @@
     <ClInclude Include="include\kotte\entity_store.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="player_health.hpp">
+    <ClInclude Include="include\kotte\player_health.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
