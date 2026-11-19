@@ -9,7 +9,7 @@
 
 int main([[maybe_unused]] int argc, [[maybe_unused]]  char** argv){    
     try{
-        std::ifstream config_file{"../config/config.json"};
+        std::ifstream config_file{"config/config.json"};
         if (!config_file.is_open()) {
             throw std::runtime_error{ "Could not open config/config.json" };
             };

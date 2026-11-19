@@ -9,6 +9,7 @@
 #include "kotte/tile_map.hpp"
 #include "kotte/window.hpp"
 #include "kotte/config.hpp"
+#include "kotte/input.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -177,5 +178,10 @@ namespace kotte
         quicktype::Config config_;
         EntityHandle player_handle_;
         bool exit_requested_ = false;
+
+        private:
+            void initalize_input();
+
+            InputContext gameplay_;
     };
 }

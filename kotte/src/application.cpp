@@ -27,6 +27,7 @@ namespace kotte
             static_cast<float>(map_.width() * tile_size_),
             static_cast<float>(map_.height() * tile_size_)}, spatial_cell_size_}
         , config_{ config } {
+        initalize_input();
         populate_entities();
         initialize_enemies();
     }
@@ -73,7 +74,12 @@ namespace kotte
     }
 
     void Application::collect_frame_actions() noexcept{
-        if(IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_Q)){
+
+        /*if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_Q)) {
+            request_exit();
+        }*/
+        
+        if (gameplay_.pressed(Action::Quit)) {
             request_exit();
         }
 
@@ -89,7 +95,11 @@ namespace kotte
         frame_actions_.remote_detonation = IsKeyPressed(KEY_ENTER); // ASSIGNMENT EXTENSIONS NO.13
 
         Vector2& movement_direction = frame_actions_.player_movement_direction;
-        if(IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)){
+        Vector2 movement = gameplay_.get(Direction::Move);
+        movement_direction += movement;
+
+
+        /*if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
             movement_direction.x -= 1.0f;
         }
         if(IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)){
@@ -105,7 +115,7 @@ namespace kotte
         // Normalize intent before simulation so bindings cannot change movement speed.
         if(movement_direction.x != 0.0f || movement_direction.y != 0.0f){
             movement_direction = Vector2Normalize(movement_direction);
-        }
+        }*/
     }
 
     void Application::update_gameplay(float delta_time){
@@ -281,6 +291,12 @@ namespace kotte
                 }
             }
         }
+    }
+
+    void Application::initalize_input()
+    {
+        gameplay_.bind(Action::Quit, KEY_Y);
+        gameplay_.bind(Direction::Move, KEY_A, KEY_D, KEY_W, KEY_S);
     }
 
     void Application::try_move_player(Vector2 axis_displacement){
