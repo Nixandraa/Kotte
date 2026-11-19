@@ -119,10 +119,12 @@
   <ItemGroup>
     <ClInclude Include="include\kotte\application.hpp" />
     <ClInclude Include="include\kotte\camera.hpp" />
+    <ClInclude Include="include\kotte\config.hpp" />
     <ClInclude Include="include\kotte\entity.hpp" />
     <ClInclude Include="include\kotte\entity_handle.hpp" />
     <ClInclude Include="include\kotte\entity_store.hpp" />
     <ClInclude Include="include\kotte\input.hpp" />
+    <ClInclude Include="include\kotte\nlohmann\json.hpp" />
     <ClInclude Include="include\kotte\random.hpp" />
     <ClInclude Include="include\kotte\renderer.hpp" />
     <ClInclude Include="include\kotte\spatial_grid.hpp" />

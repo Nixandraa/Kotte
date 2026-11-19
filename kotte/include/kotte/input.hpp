@@ -2,51 +2,47 @@
 
 #include <raylib.h>
 #include <unordered_map>
+#include <vector>
 
-enum class Action {
-    Quit,
-    Jump,
-    Attack,
-};
+namespace kotte {
 
-enum class Axis {
-    MoveX,
-    MoveY,
-};
-
-enum class Direction {
-    Move,
-};
-
-struct InputContext {
-    InputContext() = default;
-
-    void bind(Action action, int key);
-    void bind(Axis axis, int positive, int negative);
-    void bind(Direction direction, int left, int right, int up, int down);
-
-    bool down(Action action) const;
-    bool pressed(Action action) const;
-
-    float get(Axis axis) const;
-    Vector2 get(Direction direction) const;
-
-private:
-    struct AxisBinding {
-        int positive;
-        int negative;
+    enum class Action {
+        Quit,
+        Place_bomb,
+        Restart,
+        Detonate
     };
 
-    struct DirectionBinding {
-        int left;
-        int right;
-        int up;
-        int down;
+    enum class Direction {
+        Move,
     };
 
-    std::unordered_map<Action, int> actions; //vector of ints
-    std::unordered_map<Axis, AxisBinding> axes;
-    std::unordered_map<Direction, DirectionBinding> directions;
+    class Input final {
 
-};
+        struct DirectionBinding {
+            std::vector<int> left;
+            std::vector<int> right;
+            std::vector<int> up;
+            std::vector<int> down;
+        };
+
+        [[nodiscard]] static bool any_down(const std::vector<int>& keys) noexcept;
+        [[nodiscard]] static bool any_pressed(const std::vector<int>& keys) noexcept;
+
+        std::unordered_map<Action, std::vector<int>> actions;
+        std::unordered_map<Direction, DirectionBinding> directions;
+
+    public:
+        Input() = default;
+
+        void bind(Action action, std::vector<int>keys);
+        void bind(Direction direction, std::vector<int> left, 
+            std::vector<int> right, std::vector<int> up, std::vector<int> down);
+
+        [[nodiscard]] bool down(Action action) const noexcept;
+        [[nodiscard]] bool pressed(Action action) const noexcept;
+        [[nodiscard]] Vector2 get(Direction direction) const noexcept;
+    };
+}
+
 

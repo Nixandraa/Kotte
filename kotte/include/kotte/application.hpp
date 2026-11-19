@@ -161,6 +161,7 @@ namespace kotte
 
         Window window_; // Constructed first, destroyed last.
         Camera camera_;
+        Input input_;
         Random random_;
         TileMap map_;
         EntityStore entities_;
@@ -178,10 +179,5 @@ namespace kotte
         quicktype::Config config_;
         EntityHandle player_handle_;
         bool exit_requested_ = false;
-
-        private:
-            void initalize_input();
-
-            InputContext gameplay_;
     };
 }

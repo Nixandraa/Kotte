@@ -1,66 +1,70 @@
 #include "kotte/input.hpp"
 #include <raymath.h>
+#include <utility>
 
-void InputContext::bind(Action action, int key)
-{
-    actions[action] = key; //in case of vector pushback key
-}
+namespace kotte {
 
-void InputContext::bind(Axis axis, int positive, int negative)
-{
-    axes[axis] = AxisBinding{ positive, negative };
-}
-
-void InputContext::bind(Direction direction, int left, int right, int up, int down)
-{
-    directions[direction] = DirectionBinding{
-        .left = left,
-        .right = right,
-        .up = up,
-        .down = down,
-    };
-}
-
-bool InputContext::down(Action action) const
-{
-    auto it = actions.find(action);
-    return it != actions.end() && IsKeyDown(it->second); //second is a bound key
-}
-
-bool InputContext::pressed(Action action) const
-{
-    auto it = actions.find(action);
-    return it != actions.end() && IsKeyPressed(it->second);
-}
-
-float InputContext::get(Axis axis) const
-{
-    auto it = axes.find(axis);
-    if (it == axes.end()) {
-        return 0.0f;
+    bool Input::any_down(const std::vector<int>& keys) noexcept
+    {
+        for (const int key : keys) {
+            if (IsKeyDown(key)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    const auto& b = it->second;
-    float value = float(IsKeyDown(b.positive)) - float(IsKeyDown(b.negative));
-    return value;
-}
-
-Vector2 InputContext::get(Direction direction) const
-{
-    auto it = directions.find(direction);
-    if (it == directions.end()) {
-        return {0.0f, 0.0f};
+    bool Input::any_pressed(const std::vector<int>& keys) noexcept
+    {
+        for (const int key : keys) {
+            if (IsKeyPressed(key)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    const auto& b = it->second;
-    Vector2 value{
-        .x = float(IsKeyDown(b.right)) - float(IsKeyDown(b.left)),
-        .y = float(IsKeyDown(b.down)) - float(IsKeyDown(b.up)),
-    };
-
-    if (Vector2LengthSqr(value) > 0.0f) {
-        value = Vector2Normalize(value); //length of it is 1
+    void Input::bind(Action action, std::vector<int> keys)
+    {
+        actions[action] = std::move(keys);
     }
 
-    return value;
+    void Input::bind(Direction direction, std::vector<int> left, std::vector<int> right, 
+        std::vector<int> up, std::vector<int> down)
+    {
+        
+        directions[direction] = { std::move(left), std::move(right), std::move(up), std::move(down) };
+    }
+
+    bool Input::down(Action action) const noexcept
+    {
+        const auto it = actions.find(action);
+        return it != actions.end() && any_down(it->second);
+    }
+
+    bool Input::pressed(Action action) const noexcept
+    {
+        const auto it = actions.find(action);
+        return it != actions.end() && any_pressed(it->second);
+    }
+
+    Vector2 Input::get(Direction direction) const noexcept
+    {
+        const auto it = directions.find(direction);
+        if (it == directions.end()) {
+            return {};
+        }
+
+        const DirectionBinding& binding = it->second;
+        Vector2 value{
+            float(any_down(binding.right)) - float(any_down(binding.left)),
+            float(any_down(binding.down)) - float(any_down(binding.up))
+        };
+        if (Vector2LengthSqr(value) > 0.0f) {
+            value = Vector2Normalize(value);
+        }
+        return value;
+    }
 }
+
+
